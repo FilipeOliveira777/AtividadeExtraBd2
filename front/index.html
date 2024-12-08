@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estados e Municípios do Brasil</title>
+    <script src="index.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f9;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            font-size: 18px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            margin-bottom: 20px;
+        }
+
+        #mapa {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 20px;
+            width: 100%;
+            height: 100%;
+            background-color: #e9e9e9;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Estados e Municípios do Brasil</h1>
+
+        <label for="estado">Escolha um estado:</label>
+        <select id="estado" onchange="carregarMunicipios()">
+            <option value="">Selecione um estado</option>
+        </select>
+
+        <label for="municipio">Escolha um município:</label>
+        <select id="municipio" onchange="exibirMapa()">
+            <option value="">Selecione um município</option>
+        </select>
+
+        <div id="mapa">
+            <!-- O mapa em SVG será carregado aqui -->
+        </div>
+    </div>
+
+    <script>
+        const estadoSelect = document.getElementById('estado');
+        const municipioSelect = document.getElementById('municipio');
+        const mapaDiv = document.getElementById('mapa');
+        const apiUrlEstados = 'http://servicodados.ibge.gov.br/api/v1/localidades/estados';
+        const apiUrlMunicipios = 'http://servicodados.ibge.gov.br/api/v1/localidades/estados/:idEstado/municipios';
+
+        let estados = [];
+        let municipios = {};
+
+        // Carregar os estados do Brasil
+        async function carregarEstados() {
+            try {
+                const response = await fetch(apiUrlEstados);
+                const data = await response.json();
+
+                // Ordenando os estados por nome
+                const estadosOrdenados = data.sort((a, b) => a.nome.localeCompare(b.nome));
+
+                // Preenchendo o select com os estados ordenados
+                estadosOrdenados.forEach(estado => {
+                    const option = document.createElement('option');
+                    option.value = estado.id;
+                    option.textContent = estado.nome;
+                    estadoSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Erro ao carregar estados:', error);
+            }
+        }
+
+
+        // Carregar municípios ao selecionar um estado
+        async function carregarMunicipios() {
+            const estadoId = estadoSelect.value;
+            if (!estadoId) {
+                municipioSelect.innerHTML = '<option value="">Selecione um município</option>';
+                municipioSelect.disabled = true;
+                mapaDiv.innerHTML = '';
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://servicodados.ibge.gov.br/api/v1/localidades/estados/${estadoId}/municipios`);
+                const data = await response.json();
+                municipios[estadoId] = data;
+                municipioSelect.innerHTML = '<option value="">Selecione um município</option>';
+                data.forEach(municipio => {
+                    const option = document.createElement('option');
+                    option.value = municipio.id;
+                    option.textContent = municipio.nome;
+                    municipioSelect.appendChild(option);
+                });
+                municipioSelect.disabled = false;
+            } catch (error) {
+                console.error('Erro ao carregar municípios:', error);
+            }
+        }
+
+        // Exibir o mapa do estado com o município destacado
+        async function exibirMapa() {
+            const municipioId = municipioSelect.options[municipioSelect.selectedIndex].text;
+            const estadoId = estadoSelect.options[estadoSelect.selectedIndex].text;
+
+            if (!municipioId || !estadoId) {
+                mapaDiv.innerHTML = 'Selecione um estado e um município.';
+                return;
+            }
+
+            try {
+
+                const response = await fetch(`http://localhost:3000/svg/${estadoId}/${municipioId}`);
+                const data = await response.json();
+                console.log(data);
+
+
+                if (data.error) {
+                    mapaDiv.innerHTML = `Erro: ${data.error}`;
+                    return;
+                }
+
+                // Caso contrário, continue com a exibição do mapa
+                const svg = `
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="${data.viewBox}" width="500" height="500">
+                <path d="${data.pathestado}" fill="lightblue" stroke="blue" stroke-width="0.01"/>
+                <path d="${data.pathmunicipio}" fill="orange" stroke="red" stroke-width="0.01"/>
+                </svg>`;
+
+                mapaDiv.innerHTML = svg;
+
+            } catch (error) {
+                console.error('Erro ao carregar o mapa:', error);
+                mapaDiv.innerHTML = 'Erro ao carregar o mapa.';
+            }
+        }
+
+        // Carregar os estados ao carregar a página
+        carregarEstados();
+    </script>
+</body>
+
+</html>
