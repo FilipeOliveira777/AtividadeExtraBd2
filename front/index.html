@@ -59,7 +59,8 @@
         <h1>Estados e Municípios do Brasil</h1>
 
         <label for="estado">Escolha um estado:</label>
-        <select id="estado" onchange="carregarMunicipios()">
+        <select id="estado" onchange="carregarMunicipios(),exibirMapa()">
+            
             <option value="">Selecione um estado</option>
         </select>
 
@@ -146,8 +147,6 @@
 
                 const response = await fetch(`http://localhost:3000/svg/${estadoId}/${municipioId}`);
                 const data = await response.json();
-                console.log(data);
-
 
                 if (data.error) {
                     mapaDiv.innerHTML = `Erro: ${data.error}`;

@@ -29,12 +29,19 @@ app.get('/svg/:estado/:municipio', async (req, res) => {
     let pathEstado = await client.query('SELECT ST_AsSVG(geom) FROM estado WHERE nome ilike $1',[estado]);
     let pathMunicipio = await client.query('SELECT ST_AsSVG(geom) FROM municipio WHERE nome ilike $1',[municipio]);
     let viewBox = await client.query('SELECT getViewBox($1)',[estado]);
-
+    
+    if (pathMunicipio && pathMunicipio.rows && pathMunicipio.rows[0]) {
+        res.json({
+            pathestado: pathEstado.rows[0].st_assvg,
+            pathmunicipio: pathMunicipio.rows[0].st_assvg,
+            viewBox: viewBox.rows[0].getviewbox
+        });
+    }else if(pathEstado && pathEstado.rows && pathEstado.rows[0]){
     res.json({
         pathestado: pathEstado.rows[0].st_assvg,
-        pathmunicipio: pathMunicipio.rows[0].st_assvg,
         viewBox: viewBox.rows[0].getviewbox
-    });
+    });}
+    
 
 });
 
